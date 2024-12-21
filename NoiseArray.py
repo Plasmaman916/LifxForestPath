@@ -1,5 +1,3 @@
-
-
 def clamp(val, minimum, maximum):
     return max(min(val, maximum), minimum)
 

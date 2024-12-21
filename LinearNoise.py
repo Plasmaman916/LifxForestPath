@@ -1,6 +1,5 @@
 from perlin_noise import PerlinNoise
 from NoiseArray import NoiseArray
-from math import floor
 
 def clamp(val, minimum, maximum):
     return max(min(val, maximum), minimum)
