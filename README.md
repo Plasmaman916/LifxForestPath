@@ -8,7 +8,7 @@ I want to start to set the vibe for the gameplay upon approaching to room. To do
 ### Credits
 We use a couple of libries.
 
-Meghan Clark Lifxlan project
+Meghan Clark Lifxlan project to control the light strips
 - https://github.com/mclarkk/lifxlan
 
 Random noise is created via perlin_noise
