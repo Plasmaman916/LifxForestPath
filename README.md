@@ -11,6 +11,9 @@ We use a couple of libries.
 Meghan Clark Lifxlan project
 - https://github.com/mclarkk/lifxlan
 
+Random noise is created via perlin_noise
+- https://pypi.org/project/perlin-noise/
+
 Pygame is used for visulaization of the simulation of the masking.
 - https://www.pygame.org
 
