@@ -1,12 +1,11 @@
 import colorsys
 import random
-import string
 import threading
 import time
 
 from flask import Flask
-from lifxlan import MultiZoneLight
 import pygame
+from rpi_ws281x import PixelStrip, Color
 
 import DisplayUtils
 from LinearNoise import LinearNoise
@@ -14,12 +13,20 @@ from NoiseArray import NoiseArray
 
 SIMULATION = False
 
-# Define the light strips
-lights = [MultiZoneLight('d0:73:d5:d4:bd:a4', '192.168.1.177'),
-          MultiZoneLight('d0:73:d5:43:9b:d6', '192.168.1.212')]
-
 # Create the flask app
 app = Flask(__name__)
+
+# LED strip configuration:
+LED_COUNT = 300        # Number of LED pixels.
+LED_PIN = 18          # GPIO pin connected to the pixels (18 uses PWM!).
+# LED_PIN = 10        # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
+LED_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
+LED_DMA = 10          # DMA channel to use for generating signal (try 10)
+LED_BRIGHTNESS = 255  # Set to 0 for darkest and 255 for brightest
+LED_INVERT = False    # True to invert the signal (when using NPN transistor level shift)
+LED_CHANNEL = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
+
+strip = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
 
 # Used for displaying simulation
 width = 900
@@ -34,7 +41,7 @@ keepGameRunning = True
 curr_time = time.time()
 
 # number of segments or 'columns'
-cols = 30
+cols = 300
 
 # Background 'sky' color
 blue_color = (110/2, 141/2, 200/2)
@@ -51,10 +58,6 @@ blue_inv_r = LinearNoise(curr_time, cols,3, 5, 8721, 2, 1,blue_color, (0, 0, 0))
 blue_inv2_r = LinearNoise(curr_time, cols,3, 3, 1231, 3, 1,blue_color, (0, 0, 0))
 green_r = LinearNoise(curr_time, cols,3, 5, 8721, 2, 1,(20, 181, 60), (0, 0, 50))
 green2_r = LinearNoise(curr_time, cols,3, 3, 1231, 3, 1,(20, 181, 60), (0, 0, 0))
-
-# Set the end of the strings to a constant white clor
-lights[0].set_zone_color(1, 49, [0,0,65535, 3000], 0, True, apply=1)
-lights[1].set_zone_color(1, 49, [0,0,65535, 3000], 0, True, apply=1)
 
 def rand_time():
     return random.random()*10 + 15
@@ -103,32 +106,7 @@ def stop():
 
 @app.route('/set/<param>', methods=['GET','POST'])
 def set(param):
-   if param == 'white':
-       lights[0].set_zone_color(0,49, [0, 0, 65535, 3000],
-                                0, True, apply=1)
-       lights[1].set_zone_color(0,49, [0, 0, 65535, 3000],
-                                0, True, apply=1)
-       return "Set lights to white!"
-   elif "end_color" in param:
-       param = param.replace("end_color","")
-       # Remove the '#' if present
-       param = param.replace("_", "")
-       if len(param) < 10:
-           return "Invalid color! " + str(param)
-
-       # Convert hex to RGB
-       r = int(param[0:2], 16) / 255.0
-       g = int(param[2:4], 16) / 255.0
-       b = int(param[4:6], 16) / 255.0
-       k = int(param[6:10], 10)
-
-       # Convert RGB to HSV
-       h, s, v = colorsys.rgb_to_hsv(r, g, b)
-       lights[0].set_zone_color(30,49, [h*65535,s*65535,v*65535,k],0, True, apply=1)
-       lights[1].set_zone_color(30,49, [h*65535,s*65535,v*65535,k],0, True, apply=1)
-       return "Set the color!"
-   else:
-       return "Did nothing"
+   return "Did nothing"
 
 
 def LightingEffects():
@@ -241,13 +219,10 @@ def LightingEffects():
                     side_r_del = 0
 
             # Set the zone color for each segment
-            # Need to multiply by 60000 to make it compatible with LIFX range
-            lights[0].set_zone_color(0 + i, 0 + i, [color_l[0] * 65535, color_l[1] * 65535, color_l[2] * 65535, 3000],
-                                     side_l_del, True, apply=1)
-            lights[1].set_zone_color(0 + i, 0 + i, [color_r[0] * 65535, color_r[1] * 65535, color_r[2] * 65535, 3000],
-                                     side_r_del, True, apply=1)
+            strip.setPixelColor(i, (final_vals_l.arr[i][0],final_vals_l.arr[i][1],final_vals_l.arr[i][2],0))
             # Sleep between packet send to each device due to packet rate limitations
             time.sleep(0.02)
+        strip.show()
 
         if SIMULATION:
             pygame.display.flip()
