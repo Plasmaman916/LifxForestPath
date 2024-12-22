@@ -1,5 +1,6 @@
 import colorsys
 import random
+import string
 import threading
 import time
 
@@ -94,12 +95,41 @@ def start():
 @app.route('/stop/', methods=['GET','POST'])
 def stop():
    global do_updates
-   do_updates = False
    if do_updates:
        do_updates = False
        return "Now stopped!"
    else:
        return "Already stopped!"
+
+@app.route('/set/<param>', methods=['GET','POST'])
+def set(param):
+   if param == 'white':
+       lights[0].set_zone_color(0,49, [0, 0, 65535, 3000],
+                                0, True, apply=1)
+       lights[1].set_zone_color(0,49, [0, 0, 65535, 3000],
+                                0, True, apply=1)
+       return "Set lights to white!"
+   elif "end_color" in param:
+       param = param.replace("end_color","")
+       # Remove the '#' if present
+       param = param.replace("_", "")
+       if len(param) < 10:
+           return "Invalid color! " + str(param)
+
+       # Convert hex to RGB
+       r = int(param[0:2], 16) / 255.0
+       g = int(param[2:4], 16) / 255.0
+       b = int(param[4:6], 16) / 255.0
+       k = int(param[6:10], 10)
+
+       # Convert RGB to HSV
+       h, s, v = colorsys.rgb_to_hsv(r, g, b)
+       lights[0].set_zone_color(30,49, [h*65535,s*65535,v*65535,k],0, True, apply=1)
+       lights[1].set_zone_color(30,49, [h*65535,s*65535,v*65535,k],0, True, apply=1)
+       return "Set the color!"
+   else:
+       return "Did nothing"
+
 
 def LightingEffects():
     global keepGameRunning
@@ -212,9 +242,9 @@ def LightingEffects():
 
             # Set the zone color for each segment
             # Need to multiply by 60000 to make it compatible with LIFX range
-            lights[0].set_zone_color(0 + i, 0 + i, [color_l[0] * 60000, color_l[1] * 60000, color_l[2] * 60000, 3000],
+            lights[0].set_zone_color(0 + i, 0 + i, [color_l[0] * 65535, color_l[1] * 65535, color_l[2] * 65535, 3000],
                                      side_l_del, True, apply=1)
-            lights[1].set_zone_color(0 + i, 0 + i, [color_r[0] * 60000, color_r[1] * 60000, color_r[2] * 60000, 3000],
+            lights[1].set_zone_color(0 + i, 0 + i, [color_r[0] * 65535, color_r[1] * 65535, color_r[2] * 65535, 3000],
                                      side_r_del, True, apply=1)
             # Sleep between packet send to each device due to packet rate limitations
             time.sleep(0.02)
