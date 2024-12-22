@@ -220,7 +220,7 @@ def LightingEffects():
                     side_r_del = 0
 
             # Set the zone color for each segment
-            strip.setPixelColor(int(i), (int(final_vals_l.arr[i][0]),int(final_vals_l.arr[i][1]),int(final_vals_l.arr[i][2])))
+            strip.setPixelColor(i, Color(int(final_vals_l.arr[i][0]),int(final_vals_l.arr[i][1]),int(final_vals_l.arr[i][2])))
             # Sleep between packet send to each device due to packet rate limitations
             time.sleep(0.02)
         strip.show()
