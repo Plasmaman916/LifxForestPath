@@ -5,7 +5,7 @@ import time
 
 from flask import Flask
 import pygame
-from rpi_ws281x import PixelStrip, Color
+from rpi_ws281x import PixelStrip, Color, ws
 
 import DisplayUtils
 from LinearNoise import LinearNoise
@@ -25,8 +25,9 @@ LED_DMA = 10          # DMA channel to use for generating signal (try 10)
 LED_BRIGHTNESS = 255  # Set to 0 for darkest and 255 for brightest
 LED_INVERT = False    # True to invert the signal (when using NPN transistor level shift)
 LED_CHANNEL = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
+LED_STRIP = ws.WS2812_STRIP
 
-strip = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
+strip = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL, LED_STRIP)
 
 # Used for displaying simulation
 width = 900
@@ -219,7 +220,7 @@ def LightingEffects():
                     side_r_del = 0
 
             # Set the zone color for each segment
-            strip.setPixelColor(i, (int(final_vals_l.arr[i][0]),int(final_vals_l.arr[i][1]),int(final_vals_l.arr[i][2]),0))
+            strip.setPixelColor(int(i), (int(final_vals_l.arr[i][0]),int(final_vals_l.arr[i][1]),int(final_vals_l.arr[i][2])))
             # Sleep between packet send to each device due to packet rate limitations
             time.sleep(0.02)
         strip.show()
