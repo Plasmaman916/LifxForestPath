@@ -84,8 +84,8 @@ class LinearNoise:
 
             self.next_noise = PerlinNoise(octaves=self.octaves, seed=self.seed)
             for i in range(self.r):
-                next_n = abs(self.next_noise(i / self.r) * self.h)
-                current_n = abs(self.current_noise(i / self.r) * self.h)
+                next_n = abs(self.next_noise(i / self.r + 0.1) * self.h)
+                current_n = abs(self.current_noise(i / self.r + 0.1) * self.h)
                 self.current_vals[i] = current_n
                 self.next_vals[i] = next_n
             self.transition_start = time
