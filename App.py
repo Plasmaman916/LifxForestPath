@@ -5,6 +5,7 @@ import threading
 import time
 
 from flask import Flask
+from flask_socketio import SocketIO, emit
 from lifxlan import MultiZoneLight
 import pygame
 
@@ -19,7 +20,9 @@ lights = [MultiZoneLight('d0:73:d5:d4:bd:a4', '192.168.1.177'),
           MultiZoneLight('d0:73:d5:43:9b:d6', '192.168.1.212')]
 
 # Create the flask app
-app = Flask(__name__)
+socket_app = Flask(__name__)
+socket_app.config['SECRET_KEY'] = 'my_secret!123'
+socketio = SocketIO(socket_app, async_mode="threading")
 
 # Used for displaying simulation
 width = 900
@@ -84,23 +87,28 @@ def new_time():
     new_run_end1 = new_run_end + 2
     start_side = random.randint(0, 1)
 
+@socketio.on('connect')
+def connect():
+    print('connect ')
+    emit("running", json.dumps({"running": do_updates, "mode": mode}), broadcast=False, namespace='/')
+
+
+@socketio.on('disconnect')
+def connect():
+    print('disconnected ')
+
+
+def send_status():
+    print("Sending Status To All")
+    emit("running",json.dumps({"running": do_updates, "mode": mode}), broadcast=True, namespace='/')
+
 
 do_updates = True
 mode = "Forest"
 
 
-@app.route('/status', methods=['GET'])
-def status():
-    global mode
-    resp = {
-        "running": do_updates,
-        "mode": mode
-    }
-    return json.dumps(resp)
-
-
-@app.route('/start', methods=['POST'])
-def start():
+@socketio.on('start')
+def start_socket(data):
     global do_updates
     global mode
     mode = "Forest"
@@ -108,41 +116,41 @@ def start():
         return "Already running!"
     else:
         do_updates = True
+        print("Starting")
+        send_status()
         return "Now running!"
 
 
-@app.route('/stop/', methods=['POST'])
-def stop():
+@socketio.on('stop')
+def stop_socket(data):
     global do_updates
     if do_updates:
         do_updates = False
+        send_status()
         return "Now stopped!"
     else:
         return "Already stopped!"
 
 
-@app.route('/set/<param>', methods=['POST'])
+@socketio.on('set')
 def set(param):
+    data = json.loads(param)
     global mode
-    if param == 'white':
-        lights[0].set_zone_color(0, 49, [0, 0, 65535, 3000],
+    if 'white' in data:
+        lights[0].set_zone_color(0, 49, [65535, 65535, 65535, data["white"]],
                                  0, True, apply=1)
-        lights[1].set_zone_color(0, 49, [0, 0, 65535, 3000],
+        lights[1].set_zone_color(0, 49, [65535, 65535, 65535, data["white"]],
                                  0, True, apply=1)
         mode = "White"
+        send_status()
         return "Set lights to white!"
-    elif "end_color" in param:
-        param = param.replace("end_color", "")
-        # Remove the '#' if present
-        param = param.replace("_", "")
-        if len(param) < 10:
-            return "Invalid color! " + str(param)
+    elif "end_color" in data:
 
         # Convert hex to RGB
-        r = int(param[0:2], 16) / 255.0
-        g = int(param[2:4], 16) / 255.0
-        b = int(param[4:6], 16) / 255.0
-        k = int(param[6:10], 10)
+        r = int(data["end_color"][0:2], 16) / 255.0
+        g = int(param["end_color"][2:4], 16) / 255.0
+        b = int(param["end_color"][4:6], 16) / 255.0
+        k = int(param["end_color"][6:10], 10)
 
         # Convert RGB to HSV
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
@@ -219,12 +227,12 @@ def LightingEffects():
                                  .add(green_vals_l * 0.7), width, 100, 0, 700)
 
         # Add the masks together appropriately
-        final_vals_l: NoiseArray = ((blue_vals_l*1.3)
+        final_vals_l: NoiseArray = ((blue_vals_l * 1.3)
                                     .sub(blue_inv2_vals_l * 0.9)
                                     .sub(blue_inv_vals_l * 0.9)
                                     .add(green2_vals_l * 0.9)
                                     .add(green_vals_l * 0.9)
-                                    .clamp()) # Higher values to test brightness
+                                    .clamp())  # Higher values to test brightness
         final_vals_r: NoiseArray = (blue_vals_r
                                     .sub(blue_inv2_vals_r * 0.7)
                                     .sub(blue_inv_vals_r * 0.7)
@@ -278,7 +286,9 @@ def LightingEffects():
 
 
 if __name__ == '__main__':
-    t1 = threading.Thread(target=LightingEffects)
-    t1.start()
-    app.run(host='0.0.0.0', port=8080)
+    t2 = threading.Thread(target=LightingEffects, daemon=True)
+    t2.start()
+
+    socketio.run(socket_app, host='0.0.0.0', port=8081, allow_unsafe_werkzeug=True)
+
     keepGameRunning = False
