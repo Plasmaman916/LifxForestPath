@@ -99,8 +99,9 @@ def connect():
 
 
 def send_status():
+    global white_color
     print("Sending Status To All")
-    emit("running",json.dumps({"running": do_updates, "mode": mode}), broadcast=True, namespace='/')
+    emit("running",json.dumps({"running": do_updates, "mode": mode, "white_color": int(white_color)}), broadcast=True, namespace='/')
 
 
 do_updates = True
@@ -131,12 +132,15 @@ def stop_socket(data):
     else:
         return "Already stopped!"
 
+white_color: float = 3000
 
 @socketio.on('set')
 def set(param):
+    global white_color
     data = json.loads(param)
     global mode
     if 'white' in data:
+        white_color = data["white"]
         lights[0].set_zone_color(0, 49, [0, 0, 65535, data["white"]],
                                  0, True, apply=1)
         lights[1].set_zone_color(0, 49, [0, 0, 65535, data["white"]],
