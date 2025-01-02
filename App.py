@@ -90,7 +90,7 @@ def new_time():
 @socketio.on('connect')
 def connect():
     print('connect ')
-    emit("running", json.dumps({"running": do_updates, "mode": mode}), broadcast=False, namespace='/')
+    emit("running",json.dumps({"running": do_updates, "mode": mode, "white_color": int(white_color)}), broadcast=True, namespace='/')
 
 
 @socketio.on('disconnect')
