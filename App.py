@@ -153,9 +153,9 @@ def set(param):
 
         # Convert hex to RGB
         r = int(data["end_color"][0:2], 16) / 255.0
-        g = int(param["end_color"][2:4], 16) / 255.0
-        b = int(param["end_color"][4:6], 16) / 255.0
-        k = int(param["end_color"][6:10], 10)
+        g = int(data["end_color"][2:4], 16) / 255.0
+        b = int(data["end_color"][4:6], 16) / 255.0
+        k = int(data["end_color"][6:10], 10)
 
         # Convert RGB to HSV
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
