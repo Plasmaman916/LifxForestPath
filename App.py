@@ -24,6 +24,8 @@ socket_app = Flask(__name__)
 socket_app.config['SECRET_KEY'] = 'my_secret!123'
 socketio = SocketIO(socket_app, async_mode="threading")
 
+light_lock = threading.Lock()
+
 # Used for displaying simulation
 width = 900
 height = 800
@@ -55,10 +57,11 @@ blue_inv2_r = LinearNoise(curr_time, cols, 3, 3, 1231, 3, 1, blue_color, (0, 0, 
 green_r = LinearNoise(curr_time, cols, 3, 5, 8721, 2, 1, (20, 181, 60), (0, 0, 50))
 green2_r = LinearNoise(curr_time, cols, 3, 3, 1231, 3, 1, (20, 181, 60), (0, 0, 0))
 
+light_lock.acquire()
 # Set the end of the strings to a constant white clor
 lights[0].set_zone_color(1, 49, [0, 0, 65535, 3000], 0, True, apply=1)
 lights[1].set_zone_color(1, 49, [0, 0, 65535, 3000], 0, True, apply=1)
-
+light_lock.release()
 
 def rand_time():
     return random.random() * 10 + 15
@@ -141,10 +144,12 @@ def set(param):
     global mode
     if 'white' in data:
         white_color = data["white"]
+        light_lock.acquire()
         lights[0].set_zone_color(0, 49, [0, 0, 65535, data["white"]],
                                  0, True, apply=1)
         lights[1].set_zone_color(0, 49, [0, 0, 65535, data["white"]],
                                  0, True, apply=1)
+        light_lock.release()
         mode = "White"
         send_status()
         print("Set White Color: ",data["white"])
@@ -152,15 +157,17 @@ def set(param):
     elif "end_color" in data:
 
         # Convert hex to RGB
-        r = int(data["end_color"][0:2], 16) / 255.0
-        g = int(data["end_color"][2:4], 16) / 255.0
-        b = int(data["end_color"][4:6], 16) / 255.0
-        k = int(data["end_color"][6:10], 10)
+        r = int(data["end_color"]["r"]) / 255.0
+        g = int(data["end_color"]["g"]) / 255.0
+        b = int(data["end_color"]["b"]) / 255.0
+        k = int(data["end_color"]["k"])
 
         # Convert RGB to HSV
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        light_lock.acquire()
         lights[0].set_zone_color(30, 49, [h * 65535, s * 65535, v * 65535, k], 0, True, apply=1)
         lights[1].set_zone_color(30, 49, [h * 65535, s * 65535, v * 65535, k], 0, True, apply=1)
+        light_lock.release()
         return "Set the color!"
     else:
         return "Did nothing"
@@ -279,10 +286,12 @@ def LightingEffects():
 
             # Set the zone color for each segment
             # Need to multiply by 60000 to make it compatible with LIFX range
+            light_lock.acquire()
             lights[0].set_zone_color(0 + i, 0 + i, [color_l[0] * 65535, color_l[1] * 65535, color_l[2] * 65535, 3000],
                                      side_l_del, True, apply=1)
             lights[1].set_zone_color(0 + i, 0 + i, [color_r[0] * 65535, color_r[1] * 65535, color_r[2] * 65535, 3000],
                                      side_r_del, True, apply=1)
+            light_lock.release()
             # Sleep between packet send to each device due to packet rate limitations
             time.sleep(0.02)
 
