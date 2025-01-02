@@ -137,12 +137,13 @@ def set(param):
     data = json.loads(param)
     global mode
     if 'white' in data:
-        lights[0].set_zone_color(0, 49, [65535, 65535, 65535, data["white"]],
+        lights[0].set_zone_color(0, 49, [0, 0, 65535, data["white"]],
                                  0, True, apply=1)
-        lights[1].set_zone_color(0, 49, [65535, 65535, 65535, data["white"]],
+        lights[1].set_zone_color(0, 49, [0, 0, 65535, data["white"]],
                                  0, True, apply=1)
         mode = "White"
         send_status()
+        print("Set White Color: ",data["white"])
         return "Set lights to white!"
     elif "end_color" in data:
 
